@@ -1,9 +1,9 @@
 from multiprocessing import Pool
 import argparse
 import os
-import csv
+import numpy as np
 
-from streamline_helper_functions import find_streamline_threshold
+from streamline_helper_functions import stimulate_streamline
 
 
 if __name__ == "__main__":
@@ -35,12 +35,8 @@ if __name__ == "__main__":
         help="Pulse Width"
     )
     parser.add_argument(
-        "--lower_bound", required=True, type=float,
-        help="Lower Bound for Threshold Search"
-    )
-    parser.add_argument(
-        "--upper_bound", required=True, type=float,
-        help="Upper Bound for Threshold Search"
+        "--stimamp", required=True, type=float,
+        help="Stimulus Amplitude (in terms of % MSO)"
     )
 
     args = parser.parse_args()
@@ -68,18 +64,20 @@ if __name__ == "__main__":
             str(args.pulse_width)
         )
 
-        os.makedirs(results_directory, exist_ok=True)
-        thresholds_file = os.path.join(
-            results_directory,
-            f"{fiber_tract}_{args.diameter}microns_"
-            f"{args.stim_type}_{args.stim_location}_{args.pulse_width}ms.csv"
+        percent_mso_amp = str(int(np.round(args.stimamp * 100)))
+
+        activation_map_directory = os.path.join(
+            args.base_path,
+            (
+                f'{args.stim_type} Results/{args.stim_location}/'
+                f'{args.head_model}/'
+                f'{str(args.pulse_width)}/Activation Mapping/'
+                f'{percent_mso_amp} % MSO'
+            )
         )
+        os.makedirs(activation_map_directory, exist_ok=True)
 
-        with open(thresholds_file, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Fiber Number', 'Activation Threshold'])
-
-        streamline_threshold_arguments = [
+        streamline_stimulation_arguments = [
             (
                 args.base_path,
                 args.head_model,
@@ -89,8 +87,7 @@ if __name__ == "__main__":
                 args.stim_type,
                 args.stim_location,
                 args.pulse_width,
-                args.lower_bound,
-                args.upper_bound
+                args.stimamp
             )
             for streamline_number in range(num_CPUs)
         ]
@@ -98,8 +95,8 @@ if __name__ == "__main__":
         # Parallel execution
         try:
             with Pool(num_CPUs) as pool:
-                pool.starmap(find_streamline_threshold,
-                             streamline_threshold_arguments)
+                pool.starmap(stimulate_streamline,
+                             streamline_stimulation_arguments)
         except Exception as e:
             print(f"Error stimulating {fiber_tract}: {e}", flush=True)
             exit(1)
