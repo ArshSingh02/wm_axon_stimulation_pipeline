@@ -12,7 +12,8 @@ from filter_and_resample import (
 )
 
 
-def extract_efield_simnibs(base_path, coordinate_file, stim_type, stim_location):
+def extract_efield_simnibs(base_path, coordinate_file, stim_type,
+                           stim_location):
     """
     Extract E-Field
 
@@ -30,14 +31,23 @@ def extract_efield_simnibs(base_path, coordinate_file, stim_type, stim_location)
     efield_file = coordinate_file.replace('.csv', '_E.csv')
 
     if stim_type == "TMS":
-        command = f"get_fields_at_coordinates -s '{coordinate_file}' -m '{base_path}/ernie_TMS_1-0001_Magstim_70mm_Fig8_nii_scalar.msh'"
+        command = (
+            f"get_fields_at_coordinates -s '{coordinate_file}' "
+            (
+                f"-m '{base_path}/"
+                "ernie_TMS_1-0001_Magstim_70mm_Fig8_nii_scalar.msh'"
+            )
+        )
 
     elif stim_type == "MST":
         mapping = {
             "Fz": f"{base_path}/mst_ernie_position_fz.msh",
             "Cz": f"{base_path}/mst_ernie_position_cz.msh"
         }
-        command = f"get_fields_at_coordinates -s '{coordinate_file}' -m '{mapping[stim_location]}'"
+        command = (
+            f"get_fields_at_coordinates -s '{coordinate_file}' "
+            f"-m '{mapping[stim_location]}'"
+        )
 
     elif stim_type == "ECT":
         mapping = {
@@ -46,7 +56,17 @@ def extract_efield_simnibs(base_path, coordinate_file, stim_type, stim_location)
             "Right Unilateral": f"{base_path}/ru_ernie_TDCS_1_scalar.msh",
             "Testing": f"{base_path}/test_ernie_TDCS_1_scalar.msh"
         }
-        command = f"get_fields_at_coordinates -s '{coordinate_file}' -m '{mapping[stim_location]}'"
+        try:
+            mesh_file = mapping[stim_location]
+        except KeyError:
+            raise ValueError(
+                f"Invalid stim_location '{stim_location}' for ECT. "
+                f"Valid options are: {list(mapping.keys())}"
+            )
+        command = (
+            f"get_fields_at_coordinates -s '{coordinate_file}' "
+            f"-m '{mesh_file}'"
+        )
 
     elif stim_type == "Uniform":
         coordinates = pd.read_csv(coordinate_file, header=None).to_numpy()
@@ -125,7 +145,7 @@ def calculate_quasipotentials(coords, scalar_proj_efield):
 def interpolate_proj_efield(interp_arc, arc_uniform, scalar_proj_efield):
     """
     Interpolate projected e-field
-    
+
     Interpolate the scalar projected e-field onto
     MRG resolution
 
@@ -143,11 +163,13 @@ def interpolate_proj_efield(interp_arc, arc_uniform, scalar_proj_efield):
     scalar_proj_efield_interp : (M,) ndarray
         Interpolated scalar projected e-field values at interp_arc positions.
     """
-    scalar_proj_efield_interp = np.interp(interp_arc, arc_uniform, scalar_proj_efield)
+    scalar_proj_efield_interp = np.interp(interp_arc, arc_uniform,
+                                          scalar_proj_efield)
     return scalar_proj_efield_interp
 
 
-def interpolate_quasipotentials(interp_arc, arc_uniform, ec_potentials_uniform):
+def interpolate_quasipotentials(interp_arc, arc_uniform,
+                                ec_potentials_uniform):
     """
     Interpolate quasi-potentials
 
@@ -168,7 +190,8 @@ def interpolate_quasipotentials(interp_arc, arc_uniform, ec_potentials_uniform):
     ec_potentials_interp : (M,) ndarray
         Interpolated quasi-potential values at interp_arc positions.
     """
-    ec_potentials_interp = np.interp(interp_arc, arc_uniform, ec_potentials_uniform)
+    ec_potentials_interp = np.interp(interp_arc, arc_uniform,
+                                     ec_potentials_uniform)
     return ec_potentials_interp
 
 
@@ -234,6 +257,26 @@ def calculate_activating_function(fiber):
 
 
 def streamline_extraction(base_path, head_model, fiber_tract, num_streamlines):
+    """
+    Extract Streamlines
+
+    Create streamline coordinate .csv files
+
+    Parameters
+    ----------
+    base_path : str
+        user's base directory
+    head_model : str
+        patient id
+    fiber_tract : str
+        name of fiber tract
+    num_streamlines : str
+        total number of streamlines to extract
+
+    Returns
+    -------
+    None
+    """
     fiber_tract_file = (
         base_path + f'WM Fiber Tracts/{head_model}/{fiber_tract}.vtk'
     )
@@ -281,7 +324,30 @@ def streamline_extraction(base_path, head_model, fiber_tract, num_streamlines):
 
 def efield_extraction(base_path, head_model, fiber_tract, streamline_number,
                       stim_type, stim_location):
+    """
+    Extract e-fields
 
+    Extract e-field for specified streamline
+
+    Parameters
+    ----------
+    base_path : str
+        user's base directory
+    head_model : str
+        patient id
+    fiber_tract : str
+        name of fiber tract
+    streamline_number : str
+        number of streamline
+    stim_type : str
+        type of stimulation
+    stim_location : str
+        placement of electrode/coil
+
+    Returns
+    -------
+    None
+    """
     coordinate_directory = (
         base_path + f'/WM Fiber Tracts/{head_model}/{fiber_tract}/Coordinates/'
     )
