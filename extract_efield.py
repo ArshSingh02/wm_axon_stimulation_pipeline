@@ -1,4 +1,4 @@
-from multiprocess import Pool
+from multiprocessing import Pool
 import argparse
 import os
 
@@ -32,9 +32,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    fiber_tract_directory = (
-        args.base_path
-        + f'WM Fiber Tracts/{args.head_model}/{args.fiber_tract}.vtk'
+    fiber_tract_directory = os.path.join(
+        args.base_path,
+        f'WM Fiber Tracts/{args.head_model}'
     )
 
     fiber_tracts = [
@@ -67,5 +67,9 @@ if __name__ == "__main__":
         ]
 
         # Parallel execution
-        with Pool(num_CPUs) as pool:
-            pool.starmap(efield_extraction, efield_extraction_arguments)
+        try:
+            with Pool(num_CPUs) as pool:
+                pool.starmap(efield_extraction, efield_extraction_arguments)
+        except Exception as e:
+            print(f"Error extracting {fiber_tract} e-field: {e}", flush=True)
+            exit(1)
