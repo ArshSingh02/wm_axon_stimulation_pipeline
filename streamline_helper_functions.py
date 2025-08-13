@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 import csv
 
@@ -20,7 +21,8 @@ from efield_helper_functions import (
 from visualizations_helper_functions import (
     create_vtk_points,
     create_vtk_scalars,
-    save_vtk_file
+    save_vtk_file,
+    process_fiber_ap
 )
 
 from pyfibers import build_fiber, FiberModel, ScaledStim
@@ -149,7 +151,8 @@ def create_fiber(diameter, n_sections, quasipotentials_interp,
 def find_streamline_threshold(
             fiber, diameter, base_path, streamline_number, pulse_width,
             stim_type, stim_location, head_model, fiber_tract,
-            stimamp_bottom, stimamp_top):
+            stimamp_bottom, stimamp_top,
+            coords_mrg_resolution):
 
     results_directory = os.path.join(
         base_path,
@@ -183,16 +186,36 @@ def find_streamline_threshold(
 
     amp, _ = stimulation.run_sim(stimamp, fiber)
 
+    activation_map_directory = os.path.join(
+        base_path,
+        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}/Activation Mapping/Threshold'
+    )
+    os.makedirs(activation_map_directory, exist_ok=True)
+
+    streamline_activation_file = os.path.join(
+        activation_map_directory,
+        f"{fiber_tract}_{diameter}microns_{streamline_number}_"
+        f"{stim_type}_{stim_location}_{pulse_width}ms.vtk"
+    )
+
+    process_fiber_ap(fiber, coords_mrg_resolution, head_model,
+                     fiber_tract, stim_type, stim_location,
+                     pulse_width, streamline_number,
+                     streamline_activation_file)
+
 
 def stimulate_streamline(
             fiber, diameter, base_path, streamline_number, pulse_width,
             stim_type, stim_location, head_model, fiber_tract,
-            stimamp):
+            stimamp, coords_mrg_resolution):
 
-    results_directory = os.path.join(
+    percent_mso_amp = str(int(np.round(stimamp * 100)))
+
+    activation_map_directory = os.path.join(
         base_path,
-        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}/Activation Mapping'
+        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}/Activation Mapping/{percent_mso_amp} % MSO'
     )
+    os.makedirs(activation_map_directory, exist_ok=True)
 
     waveform_func, simulation_time_step, simulation_duration = select_waveform(
         stim_type, pulse_width
@@ -208,12 +231,11 @@ def stimulate_streamline(
     fiber.record_im()
     amp, _ = stimulation.run_sim(stimamp, fiber)
 
+    streamline_activation_file = os.path.join(
+        activation_map_directory,
+        f"{fiber_tract}_{diameter}microns_{streamline_number}_"
+        f"{stim_type}_{stim_location}_{pulse_width}ms.vtk"
+    )
 
-
-"""thresholds_directory = directory + f"/{stim_type} Results/{stim_location}/{head_model}/"
-os.makedirs(thresholds_directory, exist_ok=True)
-thresholds_file = thresholds_directory + f"{fiber_tract}_{diameter}um_{pulse_width}ms_thresholds.csv"
-
-with open(thresholds_file, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(['Fiber Number', 'Activation Threshold'])"""
+    process_fiber_ap(fiber, coords_mrg_resolution,
+                     streamline_activation_file)
