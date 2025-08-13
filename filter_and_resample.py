@@ -2,7 +2,9 @@ import numpy as np
 import math
 
 
-def remove_coordinate_outliers(original_coordinates, min_len=None, max_len=None, mad_k=3.5, max_passes=5, atol=1e-12):
+def remove_coordinate_outliers(original_coordinates, min_len=None,
+                               max_len=None, mad_k=3.5, max_passes=5,
+                               atol=1e-12):
     """
     Filter streamline coordinates
 
@@ -44,9 +46,11 @@ def remove_coordinate_outliers(original_coordinates, min_len=None, max_len=None,
         sigma = 1.4826 * mad if mad > 0 else 0.0
 
         lo = med - mad_k * sigma if sigma > 0 else -np.inf
-        hi = med + mad_k * sigma if sigma > 0 else  np.inf
-        if min_len is not None: lo = max(lo, float(min_len))
-        if max_len is not None: hi = min(hi, float(max_len))
+        hi = med + mad_k * sigma if sigma > 0 else np.inf
+        if min_len is not None:
+            lo = max(lo, float(min_len))
+        if max_len is not None:
+            hi = min(hi, float(max_len))
 
         bad = np.where((seg < lo - atol) | (seg > hi + atol))[0]
         if bad.size == 0:
@@ -64,7 +68,8 @@ def remove_coordinate_outliers(original_coordinates, min_len=None, max_len=None,
     return filtered_coordinates
 
 
-def resample_coordinates_simnibs_resolution(filtered_coordinates, spacing=0.1, include_end=False, atol=1e-12):
+def resample_coordinates_simnibs_resolution(filtered_coordinates, spacing=0.1,
+                                            include_end=False, atol=1e-12):
     """
     Resample coordinates to a fixed spacing
 
@@ -78,7 +83,7 @@ def resample_coordinates_simnibs_resolution(filtered_coordinates, spacing=0.1, i
     spacing : float
         Desired fixed spacing in mm (e.g., 0.1).
     include_end : bool
-        If True, append the original last point even if the final segment < spacing.
+        If True, append the original last point
         If False, stop at the last exact multiple of spacing.
     atol : float
         Tolerance used internally for floating-point guard rails.
@@ -235,7 +240,9 @@ def mrg_section_lengths_mm(d):
     mysa = 3.0
     flut = (-0.1652 * d**2) + (6.354 * d) - 0.2862
     stin = (delta_z - nor - 2*mysa - 2*flut) / 6.0
-    return np.array([nor, mysa, flut, stin, stin, stin, stin, stin, stin, flut, mysa], dtype=float) / 1000.0
+    return np.array(
+        [nor, mysa, flut, stin, stin, stin, stin, stin, stin, flut, mysa],
+        dtype=float) / 1000.0
 
 
 def make_mrg_centers(total_len_mm, d, n_sections, atol=1e-12):
@@ -259,7 +266,9 @@ def make_mrg_centers(total_len_mm, d, n_sections, atol=1e-12):
     per_rep = L.sum()
     centers = []
     offset = 0.0
-    while len(centers) < n_sections and offset + 0.5*L[0] <= total_len_mm + atol:
+    while (len(centers) < n_sections and
+           offset + 0.5*L[0] <= total_len_mm + atol):
+
         starts = offset + np.concatenate(([0.0], np.cumsum(L[:-1])))
         ends = starts + L
         c = 0.5*(starts + ends)
@@ -289,11 +298,15 @@ def interpolate_fiber_variable_centers(coordinates, d, n_sections):
 
     Returns:
         tuple: (interp_coords, interp_arc)
-            interp_coords (np.ndarray): Interpolated coordinates (n_sections x 3).
-            interp_arc (np.ndarray): Cumulative distances for interpolated coordinates.
+            interp_coords : np.ndarray (n_sections * 3)
+                Interpolated coordinates
+            interp_arc : np.ndarray
+                Cumulative distances for interpolated coordinates.
     """
     arc = compute_cumulative_distances(coordinates)
     total_len = arc[-1]
     center_arc = make_mrg_centers(total_len, d, n_sections)
-    interp_coords = np.column_stack([np.interp(center_arc, arc, coordinates[:, k]) for k in range(3)])
+    interp_coords = np.column_stack(
+        [np.interp(center_arc, arc, coordinates[:, k]) for k in range(3)]
+        )
     return interp_coords, center_arc
