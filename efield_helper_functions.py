@@ -1,11 +1,18 @@
+import numpy as np
+import pandas as pd
+import math
+import vtk
 import os
 import subprocess
 
-import numpy as np
-import pandas as pd
+
+from filter_and_resample import (
+    remove_coordinate_outliers,
+    resample_coordinates_simnibs_resolution
+)
 
 
-def extract_efield(base_path, fiber_tract, streamline_number, stim_type, stim_location):
+def extract_efield_simnibs(base_path, coordinate_file, stim_type, stim_location):
     """
     Extract E-Field
 
@@ -20,7 +27,6 @@ def extract_efield(base_path, fiber_tract, streamline_number, stim_type, stim_lo
         None
     """
 
-    coordinate_file = f"{base_path}/coordinate_path/{fiber_tract}_{streamline_number}.csv"
     efield_file = coordinate_file.replace('.csv', '_E.csv')
 
     if stim_type == "TMS":
@@ -225,3 +231,96 @@ def calculate_activating_function(fiber):
         I_m = I_prev - I_next
 
         activating_function[n] = I_m
+
+
+def streamline_extraction(base_path, head_model, fiber_tract, num_streamlines):
+    fiber_tract_file = (
+        base_path + f'WM Fiber Tracts/{head_model}/{fiber_tract}.vtk'
+    )
+
+    reader = vtk.vtkPolyDataReader()
+    reader.SetFileName(fiber_tract_file)
+    reader.Update()
+
+    wm_fiber_tract_vtk = reader.GetOutput()
+
+    for cell_id in range(num_streamlines):
+        streamline = wm_fiber_tract_vtk.GetCell(cell_id)
+
+        points_ids = streamline.GetPointIds()
+        points = wm_fiber_tract_vtk.GetPoints()
+
+        point_data = [points.GetPoint(points_ids.GetId(i)) for i
+                      in range(points_ids.GetNumberOfIds())]
+
+        end_terminal = math.sqrt(point_data[-1][0]**2 +
+                                 point_data[-1][1]**2 + point_data[-1][2]**2)
+
+        start_terminal = math.sqrt(point_data[0][0]**2 +
+                                   point_data[0][1]**2 + point_data[0][2]**2)
+
+        if end_terminal > start_terminal:
+            point_data.reverse()
+
+        streamline_number = cell_id + 1
+
+        coordinate_directory = (
+            base_path
+            + f'/WM Fiber Tracts/{head_model}/{fiber_tract}/Coordinates/'
+        )
+        os.makedirs(coordinate_directory, exist_ok=True)
+        coordinate_file = (
+            coordinate_directory +
+            f'{fiber_tract}_{streamline_number}_coordinates.csv'
+        )
+
+        pd.DataFrame(point_data).to_csv(
+            coordinate_file, index=False, header=False
+        )
+
+
+def efield_extraction(base_path, head_model, fiber_tract, streamline_number,
+                      stim_type, stim_location):
+
+    coordinate_directory = (
+        base_path + f'/WM Fiber Tracts/{head_model}/{fiber_tract}/Coordinates/'
+    )
+    os.makedirs(coordinate_directory, exist_ok=True)
+    coordinate_file = (
+        coordinate_directory +
+        f'{fiber_tract}_{streamline_number}_coordinates.csv'
+    )
+
+    original_coordinates = pd.read_csv(
+        coordinate_file, header=None
+    ).to_numpy()
+
+    filtered_coordinates = remove_coordinate_outliers(
+        original_coordinates=original_coordinates,
+        min_len=0.02,
+        mad_k=3.5
+    )
+    resampled_coordinates = resample_coordinates_simnibs_resolution(
+        filtered_coordinates=filtered_coordinates,
+        spacing=2,
+        include_end=False,
+        atol=1e-12
+    )
+
+    coordinate_file = (
+        f"{base_path}/coordinate_path/"
+        f"{fiber_tract}_{streamline_number}.csv"
+    )
+    np.savetxt(
+        coordinate_file,
+        resampled_coordinates,
+        delimiter=",",
+        fmt="%.6f"
+    )
+
+    extract_efield_simnibs(
+        base_path,
+        coordinate_file,
+        stim_type,
+        stim_location
+    )
