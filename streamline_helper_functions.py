@@ -1,9 +1,9 @@
 import os
 import pandas as pd
+import csv
 
 from filter_and_resample import (
     compute_delta_z,
-    compute_effective_streamline_length,
     compute_cumulative_distances,
     compute_n_sections,
     interpolate_fiber_variable_centers
@@ -15,6 +15,12 @@ from efield_helper_functions import (
     interpolate_proj_efield,
     interpolate_quasipotentials,
     calculate_activating_function
+)
+
+from visualizations_helper_functions import (
+    create_vtk_points,
+    create_vtk_scalars,
+    save_vtk_file
 )
 
 from pyfibers import build_fiber, FiberModel, ScaledStim
@@ -85,7 +91,9 @@ def calculate_fiber_parameters(base_path, head_model, fiber_tract,
 
 
 def create_fiber(diameter, n_sections, quasipotentials_interp,
-                 scalar_proj_efield_interp, coords_mrg_resolution):
+                 scalar_proj_efield_interp, coords_mrg_resolution,
+                 base_path, streamline_number,
+                 stim_type, stim_location, head_model, fiber_tract):
 
     fiber = build_fiber(FiberModel.MRG_INTERPOLATION,
                         diameter=diameter, n_sections=n_sections)
@@ -93,4 +101,119 @@ def create_fiber(diameter, n_sections, quasipotentials_interp,
 
     activating_function = calculate_activating_function(fiber)
 
+    file_directory = os.path.join(
+        base_path,
+        f'{stim_type} Results/{stim_location}/{head_model}/Visualizations/'
+        f'{fiber_tract}'
+    )
+
+    os.makedirs(file_directory, exist_ok=True)
+
+    diam = diameter
+    output_vtk_file = os.path.join(
+        file_directory,
+        f"{diam}_{fiber_tract}_{streamline_number}_{stim_type}_{stim_location}"
+    )
+
+    num_points = len(fiber.sections)
+
+    vtk_coords = create_vtk_points(
+        coords_mrg_resolution[:num_points]
+    )
+
+    vtk_proj_efield = create_vtk_scalars(
+        scalar_proj_efield_interp[:num_points],
+        name="Projected E-Field"
+    )
+    vtk_potentials = create_vtk_scalars(
+        quasipotentials_interp[:num_points],
+        name="EC Potentials"
+    )
+    vtk_af = create_vtk_scalars(
+        activating_function[:num_points],
+        name="Activating Function"
+    )
+    save_vtk_file(
+        output_vtk_file,
+        vtk_coords,
+        vtk_proj_efield,
+        vtk_potentials,
+        vtk_af
+    )
+    save_vtk_file(output_vtk_file, vtk_coords, vtk_proj_efield,
+                  vtk_potentials, vtk_af)
+
     return fiber
+
+
+def find_streamline_threshold(
+            fiber, diameter, base_path, streamline_number, pulse_width,
+            stim_type, stim_location, head_model, fiber_tract,
+            stimamp_bottom, stimamp_top):
+
+    results_directory = os.path.join(
+        base_path,
+        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}'
+    )
+
+    thresholds_file = os.path.join(
+        results_directory,
+        f"{fiber_tract}_{diameter}microns_{streamline_number}_"
+        f"{stim_type}_{stim_location}_{pulse_width}ms.csv"
+    )
+
+    waveform_func, simulation_time_step, simulation_duration = select_waveform(
+        stim_type, pulse_width
+    )
+    stimulation = ScaledStim(
+        waveform=waveform_func,
+        dt=simulation_time_step,
+        tstop=simulation_duration
+    )
+    stimamp, _ = stimulation.find_threshold(
+        fiber,
+        stimamp_bottom=stimamp_bottom,
+        stimamp_top=stimamp_top,
+        condition="activation"
+    )
+
+    with open(thresholds_file, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([streamline_number, stimamp])
+
+    amp, _ = stimulation.run_sim(stimamp, fiber)
+
+
+def stimulate_streamline(
+            fiber, diameter, base_path, streamline_number, pulse_width,
+            stim_type, stim_location, head_model, fiber_tract,
+            stimamp):
+
+    results_directory = os.path.join(
+        base_path,
+        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}/Activation Mapping'
+    )
+
+    waveform_func, simulation_time_step, simulation_duration = select_waveform(
+        stim_type, pulse_width
+    )
+    stimulation = ScaledStim(
+        waveform=waveform_func,
+        dt=simulation_time_step,
+        tstop=simulation_duration
+    )
+
+    fiber.record_vm()
+    fiber.record_gating()
+    fiber.record_im()
+    amp, _ = stimulation.run_sim(stimamp, fiber)
+
+
+
+"""thresholds_directory = directory + f"/{stim_type} Results/{stim_location}/{head_model}/"
+os.makedirs(thresholds_directory, exist_ok=True)
+thresholds_file = thresholds_directory + f"{fiber_tract}_{diameter}um_{pulse_width}ms_thresholds.csv"
+
+with open(thresholds_file, mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(['Fiber Number', 'Activation Threshold'])"""
