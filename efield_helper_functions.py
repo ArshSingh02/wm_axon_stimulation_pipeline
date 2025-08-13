@@ -255,6 +255,8 @@ def calculate_activating_function(fiber):
 
         activating_function[n] = I_m
 
+    return activating_function
+
 
 def streamline_extraction(base_path, head_model, fiber_tract, num_streamlines):
     """
