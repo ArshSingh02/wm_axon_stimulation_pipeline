@@ -188,7 +188,10 @@ def find_streamline_threshold(
 
     activation_map_directory = os.path.join(
         base_path,
-        f'{stim_type} Results/{stim_location}/{head_model}/{str(pulse_width)}/Activation Mapping/Threshold'
+        (
+            f'{stim_type} Results/{stim_location}/{head_model}/'
+            f'{str(pulse_width)}/Activation Mapping/Threshold'
+        )
     )
     os.makedirs(activation_map_directory, exist_ok=True)
 
@@ -211,7 +214,11 @@ def stimulate_streamline(
 
     activation_map_directory = os.path.join(
         base_path,
-        f'{stim_type} Results/{stim_location}/{head_model}/{str(pulse_width)}/Activation Mapping/{percent_mso_amp} % MSO'
+        (
+            f'{stim_type} Results/{stim_location}/{head_model}/'
+            f'{str(pulse_width)}/Activation Mapping/'
+            f'{percent_mso_amp} % MSO'
+        )
     )
     os.makedirs(activation_map_directory, exist_ok=True)
 
