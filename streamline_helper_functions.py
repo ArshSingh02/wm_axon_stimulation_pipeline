@@ -156,13 +156,13 @@ def find_streamline_threshold(
 
     results_directory = os.path.join(
         base_path,
-        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}'
+        f'{stim_type} Results/{stim_location}/{head_model}/{str(pulse_width)}'
     )
 
     thresholds_file = os.path.join(
         results_directory,
-        f"{fiber_tract}_{diameter}microns_{streamline_number}_"
-        f"{stim_type}_{stim_location}_{pulse_width}ms.csv"
+        f"{fiber_tract}_{diameter}microns_"
+        f"{stim_type}_{stim_location}_{str(pulse_width)}ms.csv"
     )
 
     waveform_func, simulation_time_step, simulation_duration = select_waveform(
@@ -188,19 +188,17 @@ def find_streamline_threshold(
 
     activation_map_directory = os.path.join(
         base_path,
-        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}/Activation Mapping/Threshold'
+        f'{stim_type} Results/{stim_location}/{head_model}/{str(pulse_width)}/Activation Mapping/Threshold'
     )
     os.makedirs(activation_map_directory, exist_ok=True)
 
     streamline_activation_file = os.path.join(
         activation_map_directory,
         f"{fiber_tract}_{diameter}microns_{streamline_number}_"
-        f"{stim_type}_{stim_location}_{pulse_width}ms.vtk"
+        f"{stim_type}_{stim_location}_{str(pulse_width)}ms.vtk"
     )
 
-    process_fiber_ap(fiber, coords_mrg_resolution, head_model,
-                     fiber_tract, stim_type, stim_location,
-                     pulse_width, streamline_number,
+    process_fiber_ap(fiber, coords_mrg_resolution,
                      streamline_activation_file)
 
 
@@ -213,7 +211,7 @@ def stimulate_streamline(
 
     activation_map_directory = os.path.join(
         base_path,
-        f'{stim_type} Results/{stim_location}/{head_model}/{pulse_width}/Activation Mapping/{percent_mso_amp} % MSO'
+        f'{stim_type} Results/{stim_location}/{head_model}/{str(pulse_width)}/Activation Mapping/{percent_mso_amp} % MSO'
     )
     os.makedirs(activation_map_directory, exist_ok=True)
 
@@ -234,7 +232,7 @@ def stimulate_streamline(
     streamline_activation_file = os.path.join(
         activation_map_directory,
         f"{fiber_tract}_{diameter}microns_{streamline_number}_"
-        f"{stim_type}_{stim_location}_{pulse_width}ms.vtk"
+        f"{stim_type}_{stim_location}_{str(pulse_width)}ms.vtk"
     )
 
     process_fiber_ap(fiber, coords_mrg_resolution,
