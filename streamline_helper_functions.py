@@ -185,7 +185,7 @@ def create_streamline(base_path, head_model, fiber_tract,
     diam = diameter
     output_vtk_file = os.path.join(
         file_directory,
-        f"{diam}_{fiber_tract}_{streamline_number}_{stim_type}_{stim_location}"
+        f"{diam}_{fiber_tract}_{streamline_number}_{stim_type}_{stim_location}.vtk"
     )
 
     num_points = len(fiber.sections)
@@ -299,6 +299,9 @@ def find_streamline_threshold(
         writer = csv.writer(file)
         writer.writerow([streamline_number, stimamp])
 
+    fiber.record_vm()
+    fiber.record_gating()
+    fiber.record_im()
     amp, _ = stimulation.run_sim(stimamp, fiber)
 
     # Activation Map Directory

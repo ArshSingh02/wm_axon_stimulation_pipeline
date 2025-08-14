@@ -89,7 +89,7 @@ def select_waveform(base_path: str, stim_type: str, pulse_width: float) -> Tuple
         tstop = 50.0
         wf_callable = waveform.load_waveform(dt, delay, tstop)
 
-    elif stim_type == "ECT":
+    elif stim_type == "ECT" or stim_type == "Uniform":
         waveform = Waveform(WaveformType.RECTANGULAR, base_path=base_path)
         tstop = 15.0
         pulse_time = 2.0

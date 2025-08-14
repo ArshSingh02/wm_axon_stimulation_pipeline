@@ -40,10 +40,7 @@ def extract_efield_simnibs(base_path, coordinate_file, stim_type,
     if stim_type == "TMS":
         command = (
             f"get_fields_at_coordinates -s '{coordinate_file}' "
-            (
-                f"-m '{base_path}/"
-                "ernie_TMS_1-0001_Magstim_70mm_Fig8_nii_scalar.msh'"
-            )
+            + f"-m '{base_path}/ernie_TMS_1-0001_Magstim_70mm_Fig8_nii_scalar.msh'"
         )
 
     elif stim_type == "MST":
@@ -290,8 +287,8 @@ def streamline_extraction(base_path, head_model, fiber_tract, num_streamlines):
     -------
     None
     """
-    fiber_tract_file = (
-        base_path + f'WM Fiber Tracts/{head_model}/{fiber_tract}.vtk'
+    fiber_tract_file = os.path.join(
+        base_path, f'WM Fiber Tracts/{head_model}/{fiber_tract}.vtk'
     )
 
     reader = vtk.vtkPolyDataReader()
@@ -375,20 +372,20 @@ def efield_extraction(base_path, head_model, fiber_tract, streamline_number,
     ).to_numpy()
 
     filtered_coordinates = remove_coordinate_outliers(
-        original_coordinates=original_coordinates,
+        coordinates=original_coordinates,
         min_len=0.02,
         mad_k=3.5
     )
     resampled_coordinates = resample_coordinates_simnibs_resolution(
-        filtered_coordinates=filtered_coordinates,
+        filtered_coordinates,
         spacing=2,
         include_end=False,
         atol=1e-12
     )
 
     coordinate_file = (
-        f"{base_path}/coordinate_path/"
-        f"{fiber_tract}_{streamline_number}.csv"
+        f"{base_path}/WM Fiber Tracts/{head_model}/{fiber_tract}/"
+        f"Coordinates/{fiber_tract}_{streamline_number}_coordinates.csv"
     )
     np.savetxt(
         coordinate_file,

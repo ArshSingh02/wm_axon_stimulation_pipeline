@@ -6,11 +6,15 @@ def create_vtk_points(points):
     """
     Create a VTK Points object from a list of 3D points.
 
-    Parameters:
-        points (list of tuple): List of (x, y, z) coordinates.
+    Parameters
+    ------
+    points : (N, 3) np.ndarray
+        3-D coordinates representing a streamline
 
-    Returns:
-        vtk.vtkPoints: VTK Points object containing the coordinates.
+    Returns
+    ------
+    vtk_points : vtk.vtkPoints
+        VTK Points object containing the coordinates
     """
     vtk_points = vtk.vtkPoints()
     for point in points:
@@ -22,12 +26,17 @@ def create_vtk_vectors(vectors, name):
     """
     Create a VTK DoubleArray object for vector data.
 
-    Parameters:
-        vectors (list of tuple): List of (x, y, z) vectors.
-        name (str): Name for the VTK data array.
+    Parameters
+    ------
+    vectors : (N, 3) np.ndarray
+        list of (x, y, z) vectors
+    name : str
+        name for the VTK data array
 
-    Returns:
-        vtk.vtkDoubleArray: VTK DoubleArray object containing the vector data.
+    Returns
+    ------
+    vtk_vectors : vtk.vtkDoubleArray
+        VTK DoubleArray object containing the vector data.
     """
     vtk_vectors = vtk.vtkDoubleArray()
     vtk_vectors.SetNumberOfComponents(3)
@@ -137,9 +146,15 @@ def create_voltage_labeled_vtk(vtk_coords, ap_nodes,
 
     polydata.GetPointData().SetScalars(voltage_array)
 
+    # Create a VTK VertexGlyphFilter for visualization
+    vertex_filter = vtk.vtkVertexGlyphFilter()
+    vertex_filter.SetInputData(polydata)
+    vertex_filter.Update()
+
+    # Write the VTK file
     writer = vtk.vtkPolyDataWriter()
     writer.SetFileName(output_vtk_file)
-    writer.SetInputData(polydata)
+    writer.SetInputData(vertex_filter.GetOutput())
     writer.Write()
 
 
