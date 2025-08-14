@@ -2,6 +2,7 @@ from typing import Optional, Tuple, Callable
 import numpy as np
 from scipy.io import loadmat
 from scipy.interpolate import interp1d
+import os
 
 
 class WaveformType:
@@ -14,7 +15,7 @@ class WaveformType:
 
 
 class Waveform:
-    def __init__(self, waveform_type: WaveformType, path: Optional[str] = None):
+    def __init__(self, waveform_type: WaveformType, base_path: str, path: Optional[str] = None):
         self.waveform_type = waveform_type
         self.time = None
         self.e_field_magnitude = None
@@ -25,16 +26,19 @@ class Waveform:
             tms_wave = loadmat(path)
             self.time = tms_wave["time"].ravel()
             self.e_field_magnitude = tms_wave["e_mag"].ravel()
+
         elif waveform_type in {WaveformType.BIPHASIC, WaveformType.MONOPHASIC}:
-            tms_waves = loadmat("/hpc/home/asb113/Desktop/WM Stimulation/Waveforms/TMSwaves.mat")
+            tms_file = os.path.join(base_path, "Waveforms", "TMSwaves.mat")
+            tms_waves = loadmat(tms_file)
             self.time = tms_waves["tm"].ravel()
             if waveform_type == WaveformType.BIPHASIC:
                 self.e_field_magnitude = tms_waves["Erec_b"].ravel()
             elif waveform_type == WaveformType.MONOPHASIC:
                 self.e_field_magnitude = tms_waves["Erec_m"].ravel()
+
         elif waveform_type == WaveformType.MST_BIPHASIC:
-            mst_wave_path = "/hpc/home/asb113/Desktop/WM Stimulation/Waveforms/MagVenture_MST_Twin.tsv"
-            mst_wave = np.loadtxt(mst_wave_path, delimiter="\t", skiprows=1)
+            mst_file = os.path.join(base_path, "Waveforms", "MagVenture_MST_Twin.tsv")
+            mst_wave = np.loadtxt(mst_file, delimiter="\t", skiprows=1)
             self.time = mst_wave[:, 0] * 1000  # convert s to ms
             self.e_field_magnitude = mst_wave[:, 1]
 
@@ -71,22 +75,22 @@ class Waveform:
         return interp1d(self.time, self.e_field_magnitude, bounds_error=False, fill_value=0.0)
 
 
-def select_waveform(stim_type: str, pulse_width: float) -> Tuple[Callable[[float], float], float, float]:
+def select_waveform(base_path: str, stim_type: str, pulse_width: float) -> Tuple[Callable[[float], float], float, float]:
+    dt = 0.001  # common default
     if stim_type == "TMS":
-        waveform = Waveform(WaveformType.BIPHASIC)
-        dt = 0.001
+        waveform = Waveform(WaveformType.BIPHASIC, base_path=base_path)
         delay = 2.0
         tstop = 50.0
         wf_callable = waveform.load_waveform(dt, delay, tstop)
+
     elif stim_type == "MST":
-        waveform = Waveform(WaveformType.MST_BIPHASIC)
-        dt = 0.001
+        waveform = Waveform(WaveformType.MST_BIPHASIC, base_path=base_path)
         delay = 2.0
         tstop = 50.0
         wf_callable = waveform.load_waveform(dt, delay, tstop)
+
     elif stim_type == "ECT":
-        waveform = Waveform(WaveformType.RECTANGULAR)
-        dt = 0.001
+        waveform = Waveform(WaveformType.RECTANGULAR, base_path=base_path)
         tstop = 15.0
         pulse_time = 2.0
         wf_callable = waveform.ect_waveform(
@@ -95,7 +99,9 @@ def select_waveform(stim_type: str, pulse_width: float) -> Tuple[Callable[[float
             pulse_time=pulse_time,
             time_step=dt
         )
+
     else:
         raise ValueError(f"Unknown stim_type: {stim_type}")
 
     return wf_callable, dt, tstop
+

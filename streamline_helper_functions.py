@@ -166,7 +166,7 @@ def find_streamline_threshold(
     )
 
     waveform_func, simulation_time_step, simulation_duration = select_waveform(
-        stim_type, pulse_width
+        base_path, stim_type, pulse_width
     )
     stimulation = ScaledStim(
         waveform=waveform_func,
@@ -223,7 +223,7 @@ def stimulate_streamline(
     os.makedirs(activation_map_directory, exist_ok=True)
 
     waveform_func, simulation_time_step, simulation_duration = select_waveform(
-        stim_type, pulse_width
+        base_path, stim_type, pulse_width
     )
     stimulation = ScaledStim(
         waveform=waveform_func,
