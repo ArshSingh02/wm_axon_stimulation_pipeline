@@ -39,7 +39,7 @@ def calculate_fiber_parameters(base_path, head_model, fiber_tract,
     and coordinates on the MRG resolution for fiber creation
 
     Parameters
-    ----------
+    ------
     base_path : str
         user's base directory
     head_model : str
@@ -56,7 +56,7 @@ def calculate_fiber_parameters(base_path, head_model, fiber_tract,
         placement of electrode/coil
 
     Returns
-    ----------
+    ------
     n_sections : int
         number of compartments in a streamline
     quasipotentials_interp : (N, 1)
@@ -138,7 +138,7 @@ def create_streamline(base_path, head_model, fiber_tract,
     e-field visualization in form of .vtk file.
 
     Parameters
-    ----------
+    ------
     base_path : str
         user's base directory
     head_model : str
@@ -163,14 +163,14 @@ def create_streamline(base_path, head_model, fiber_tract,
         streamline coordinate points interpoolated to MRG resolution
 
     Returns
-    -------
+    ------
     fiber : PyFibers Fiber Object
         streamline reconstructed in NEURON using PyFibers
     """
 
     fiber = build_fiber(FiberModel.MRG_INTERPOLATION,
                         diameter=diameter, n_sections=n_sections)
-    fiber.potentials = quasipotentials_interp[0:len(fiber.sections)] * 1000
+    fiber.potentials = quasipotentials_interp[0:len(fiber.sections)]
 
     activating_function = calculate_activating_function(fiber)
 
@@ -230,7 +230,7 @@ def find_streamline_threshold(
     initiation in white matter streamline
 
     Parameters
-    ----------
+    ------
     base_path : str
         user's base directory
     head_model : str
@@ -253,7 +253,7 @@ def find_streamline_threshold(
         upper bound of threshold search
 
     Returns
-    -------
+    ------
     None
     """
     # Stimulation Threshold Directory
@@ -333,7 +333,7 @@ def stimulate_streamline(
     initiation in white matter streamline
 
     Parameters
-    ----------
+    ------
     base_path : str
         user's base directory
     head_model : str
@@ -354,7 +354,7 @@ def stimulate_streamline(
         stimulus amplitude in terms of % MSO
 
     Returns
-    -------
+    ------
     None
     """
 

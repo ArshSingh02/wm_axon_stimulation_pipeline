@@ -302,9 +302,15 @@ def make_mrg_centers(d, streamline_length, n_sections, atol=1e-12):
     centers = []
     offset = 0.0
     while (len(centers) < n_sections and
-           offset + 0.5*cumulative_section_lengths[0] <= streamline_length + atol):
+           offset + 0.5*cumulative_section_lengths[0] <= streamline_length
+           + atol):
 
-        starts = offset + np.concatenate(([0.0], np.cumsum(cumulative_section_lengths[:-1])))
+        starts = (offset
+                  + np.concatenate(([0.0],
+                                    np.cumsum(
+                                        cumulative_section_lengths[:-1]
+                                        ))))
+
         ends = starts + cumulative_section_lengths
         c = 0.5*(starts + ends)
         for ci in c:
