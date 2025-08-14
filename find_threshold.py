@@ -19,16 +19,16 @@ if __name__ == "__main__":
         help="Patient ID"
     )
     parser.add_argument(
+        "--diameter", required=True, type=float,
+        help="Streamline Diameter"
+    )
+    parser.add_argument(
         "--stim_type", required=True, type=str,
         help="Type of Stimulation"
     )
     parser.add_argument(
         "--stim_location", required=True, type=str,
         help="Stimulation Location"
-    )
-    parser.add_argument(
-        "--diameter", required=True, type=float,
-        help="Streamline Diameter"
     )
     parser.add_argument(
         "--pulse_width", required=True, type=float,
@@ -83,9 +83,9 @@ if __name__ == "__main__":
             (
                 args.base_path,
                 args.head_model,
-                args.diameter,
                 fiber_tract,  # Changes after all jobs for one tract finish
                 streamline_number,  # Changes for each job
+                args.diameter,
                 args.stim_type,
                 args.stim_location,
                 args.pulse_width,
