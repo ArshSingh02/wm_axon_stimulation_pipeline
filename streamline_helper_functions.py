@@ -48,15 +48,15 @@ def calculate_fiber_parameters(base_path, head_model, fiber_tract,
         white matter fiber tract
     streamline_number : str
         streamline ID in fiber tract
-    diameter : int
+    diameter : float
         diameter of streamline
     stim_type : str
-        Type of stimulation
+        type of stimulation
     stim_location : str
-        Stimulation location
+        placement of electrode/coil
 
     Returns
-    -------
+    ----------
     n_sections : int
         number of compartments in a streamline
     quasipotentials_interp : (N, 1)
@@ -96,7 +96,7 @@ def calculate_fiber_parameters(base_path, head_model, fiber_tract,
     # Calculate Effective Streamline Length and Number of Sections
     cumulative_distances = compute_cumulative_distances(
         coordinates_uniform_resolution)
-    streamline_length = cumulative_distances[-1] * 1000  # Convert to microns
+    streamline_length = cumulative_distances[-1]
     delta_z = compute_delta_z(diameter)
     n_sections = compute_n_sections(streamline_length, delta_z)
 
@@ -147,12 +147,12 @@ def create_streamline(base_path, head_model, fiber_tract,
         white matter fiber tract
     streamline_number : str
         streamline ID in fiber tract
-    diameter : int
+    diameter : float
         diameter of streamline
     stim_type : str
-        Type of stimulation
+        type of stimulation
     stim_location : str
-        Stimulation location
+        placement of electrode/coil
     n_sections : int
         number of compartments in a streamline
     quasipotentials_interp : (N, 1)
@@ -239,12 +239,12 @@ def find_streamline_threshold(
         white matter fiber tract
     streamline_number : str
         streamline ID in fiber tract
-    diameter : int
+    diameter : float
         diameter of streamline
     stim_type : str
-        Type of stimulation
+        type of stimulation
     stim_location : str
-        Stimulation location
+        placement of electrode/coil
     pulse_width : float
         width of pulse for stimulus waveform
     stimamp_bottom : float
@@ -342,12 +342,12 @@ def stimulate_streamline(
         white matter fiber tract
     streamline_number : str
         streamline ID in fiber tract
-    diameter : int
+    diameter : float
         diameter of streamline
     stim_type : str
-        Type of stimulation
+        type of stimulation
     stim_location : str
-        Stimulation location
+        placement of electrode/coil
     pulse_width : float
         width of pulse for stimulus waveform
     stimamp : float
