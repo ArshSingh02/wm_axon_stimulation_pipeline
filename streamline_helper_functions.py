@@ -222,8 +222,6 @@ def create_streamline(base_path, head_model, fiber_tract,
 def find_streamline_threshold(
             base_path, head_model, fiber_tract,
             streamline_number, diameter, stim_type, stim_location,
-            n_sections, quasipotentials_interp,
-            scalar_proj_efield_interp, coords_mrg_resolution,
             pulse_width, stimamp_bottom, stimamp_top):
     """
     Find streamline threshold
@@ -247,14 +245,6 @@ def find_streamline_threshold(
         Type of stimulation
     stim_location : str
         Stimulation location
-    n_sections : int
-        number of compartments in a streamline
-    quasipotentials_interp : (N, 1)
-        ec potentials interpolated to MRG resolution
-    scalar_proj_efield_interp : (N, 1)
-        scalar projected e-field interpolated to MRG resolution
-    coords_mrg_resolution : (N, 3)
-        streamline coordinate points interpoolated to MRG resolution
     pulse_width : float
         width of pulse for stimulus waveform
     stimamp_bottom : float
@@ -335,8 +325,6 @@ def find_streamline_threshold(
 def stimulate_streamline(
             base_path, head_model, fiber_tract,
             streamline_number, diameter, stim_type, stim_location,
-            n_sections, quasipotentials_interp,
-            scalar_proj_efield_interp, coords_mrg_resolution,
             pulse_width, stimamp):
     """
     Find streamline threshold
@@ -360,14 +348,6 @@ def stimulate_streamline(
         Type of stimulation
     stim_location : str
         Stimulation location
-    n_sections : int
-        number of compartments in a streamline
-    quasipotentials_interp : (N, 1)
-        ec potentials interpolated to MRG resolution
-    scalar_proj_efield_interp : (N, 1)
-        scalar projected e-field interpolated to MRG resolution
-    coords_mrg_resolution : (N, 3)
-        streamline coordinate points interpoolated to MRG resolution
     pulse_width : float
         width of pulse for stimulus waveform
     stimamp : float
