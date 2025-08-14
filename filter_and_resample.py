@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 
-def remove_coordinate_outliers(original_coordinates, min_len=None,
+def remove_coordinate_outliers(coordinates, min_len=None,
                                max_len=None, mad_k=3.5, max_passes=5,
                                atol=1e-12):
     """
@@ -13,25 +13,27 @@ def remove_coordinate_outliers(original_coordinates, min_len=None,
     distribution of consecutive step lengths using MAD.
 
     Parameters
-    ----------
+    ------
     coordinates : (N,3) array_like
+        3-D coordinates that represent white matter streamline
     min_len : float or None
-        absolute lower bound (mm) to keep; e.g., 0.02 to kill near-duplicates
+        lower bound (in mm) resolution to keep
     max_len : float or None
-        absolute upper bound (mm) to keep
+        upper bound (in mm) resolution to keep
     mad_k : float
-        robustness threshold; larger = less aggressive
+        robustness threshold
     max_passes : int
-        iterate removal/recompute until no outliers or passes exhausted
+        iterate removal until no outliers or passes exhausted
     atol : float
-        Tolerance used internally for floating-point guard rails.
+        tolerance used internally for floating-point guard rails.
 
     Returns
-    -------
-    (M,3) ndarray
-        Filtered out points with outlier resolutions
+    ------
+    filtered_coordinates : (M,3) ndarray
+        filtered 3-D coordinates representing white matter
+        streamline
     """
-    pts = np.asarray(original_coordinates, dtype=np.float64)
+    pts = np.asarray(coordinates, dtype=np.float64)
     if pts.ndim != 2 or pts.shape[1] != 3:
         raise ValueError("coordinates must be an Nx3 array")
 
@@ -68,7 +70,7 @@ def remove_coordinate_outliers(original_coordinates, min_len=None,
     return filtered_coordinates
 
 
-def resample_coordinates_simnibs_resolution(filtered_coordinates, spacing=0.1,
+def resample_coordinates_simnibs_resolution(coordinates, spacing=0.1,
                                             include_end=False, atol=1e-12):
     """
     Resample coordinates to a fixed spacing
@@ -77,23 +79,23 @@ def resample_coordinates_simnibs_resolution(filtered_coordinates, spacing=0.1,
     points has a fixed spacing within a tolerance.
 
     Parameters
-    ----------
+    ------
     coordinates : (N,3) array_like
-        Input polyline points in mm.
+        3-D coordinates that represent white matter streamline
     spacing : float
-        Desired fixed spacing in mm (e.g., 0.1).
+        resolution for resampling coordiantes
     include_end : bool
         If True, append the original last point
         If False, stop at the last exact multiple of spacing.
     atol : float
-        Tolerance used internally for floating-point guard rails.
+        tolerance used internally for floating-point guard rails.
 
     Returns
-    -------
-    (M,3) ndarray
-        Resampled points at exact spacing.
+    ------
+    resampled_coordinates : (M,3) ndarray
+        resampled 3-d coordinates at fixed uniform resolution
     """
-    coords = np.asarray(filtered_coordinates, dtype=np.float64)
+    coords = np.asarray(coordinates, dtype=np.float64)
     if coords.ndim != 2 or coords.shape[1] != 3:
         raise ValueError("coordinates must be an Nx3 array")
 
@@ -156,15 +158,22 @@ def compute_delta_z(diameter):
     Compute the node to node distance (delta_z value)
     based on the diameter.
 
-    Parameters:
-        diameter (float): Diameter of the neuron.
+    Parameters
+    ------
+    diameter : float
+       diameter of streamline (in µm)
 
-    Returns:
-        float: Calculated delta_z value.
+    Returns
+    ------
+    delta_z : float
+        node to node distance (in µm)
     """
     if diameter >= 5.643:
-        return (-8.215 * (diameter**2)) + (272.4 * diameter) - 780.2
-    return (81.08 * diameter) + 37.84
+        delta_z = (-8.215 * (diameter**2)) + (272.4 * diameter) - 780.2
+    elif diameter < 5.643:
+        delta_z = (81.08 * diameter) + 37.84
+
+    return delta_z
 
 
 def compute_n_sections(streamline_length, delta_z):
@@ -174,12 +183,17 @@ def compute_n_sections(streamline_length, delta_z):
     Compute the number of sections based on the
     streamline length and delta_z
 
-    Parameters:
-        streamline_length (float): Length of the streamline in mm.
-        delta_z (float): Node to node distance in mm.
+    Parameters
+    ------
+    streamline_length : float
+        length of the streamline (in µm)
+    delta_z : float
+        node to node distance (in µm)
 
-    Returns:
-        int: Calculated number of sections.
+    Returns
+    ------
+    n_sections : int
+        number of compartments in a streamline
     """
     n_sections = (math.floor(streamline_length / delta_z) * 11) + 1
     return n_sections
@@ -192,12 +206,17 @@ def compute_effective_streamline_length(n_sections, delta_z):
     Compute the streamline length for NEURON
     based on the number of sections and delta_z
 
-    Parameters:
-        n_sections (int): Number of sections.
-        delta_z (float): Node to node distance in mm.
+    Parameters
+    ------
+    n_sections: int
+        number of compartments in a streamline
+    delta_z : float
+        node to node distance (in µm)
 
-    Returns:
-        float: Calculated streamline length in mm.
+    Returns
+    ------
+    effective_streamline_length : float
+        streamline length used by NEURON (in µm)
     """
     effective_streamline_length = ((n_sections - 1) / 11) * delta_z
     return effective_streamline_length
@@ -209,28 +228,37 @@ def compute_cumulative_distances(points):
 
     Compute cumulative distances along the streamline.
 
-    Parameters:
-        points (np.ndarray): Array of points (Nx3) representing coordinates.
+    Parameters
+    ------
+    points : (N, 3) arraylike
+        points representing the coordinates
 
-    Returns:
-        np.ndarray: Cumulative distances along the streamline.
+    Returns
+    ------
+    cumulative_distances : (N) np.ndarray
+        cumulative distances along the streamline (in µm)
     """
     d = np.diff(points, axis=0)
     s = np.linalg.norm(d, axis=1)
-    return np.concatenate(([0.0], np.cumsum(s)))
+    cumulative_distances = np.concatenate(([0.0], np.cumsum(s))) * 1000
+    return cumulative_distances
 
 
-def mrg_section_lengths_mm(d):
+def mrg_section_lengths(d):
     """
     Compute section lengths for MRG
 
     Compute the section lengths based on the diameter.
 
-    Parameters:
-        d (float): Diameter of the neuron.
+    Parameters
+    ------
+    d : float
+        diameter of streamline
 
-    Returns:
-        np.ndarray: Array of section lengths in mm.
+    Returns
+    ------
+    mrg_section_lengths : (N) np.ndarray
+        array of mrg compartment lengths (in µm)
     """
     if d >= 5.643:
         delta_z = (-8.215 * d**2) + (272.4 * d) - 780.2
@@ -242,10 +270,10 @@ def mrg_section_lengths_mm(d):
     stin = (delta_z - nor - 2*mysa - 2*flut) / 6.0
     return np.array(
         [nor, mysa, flut, stin, stin, stin, stin, stin, stin, flut, mysa],
-        dtype=float) / 1000.0
+        dtype=float)
 
 
-def make_mrg_centers(total_len_mm, d, n_sections, atol=1e-12):
+def make_mrg_centers(d, streamline_length, n_sections, atol=1e-12):
     """
     Make MRG centers
 
@@ -253,34 +281,48 @@ def make_mrg_centers(total_len_mm, d, n_sections, atol=1e-12):
     along the streamline based on the total length,
     diameter, and number of sections.
 
-    Parameters:
-        total_len_mm (float): Total length of the streamline in mm.
-        d (float): Diameter of the neuron.
-        n_sections (int): Number of sections.
-        atol (float): Tolerance for floating-point comparisons.
+    Parameters
+    ------
+    d : float
+        diameter of streamline (in µm)
+    streamline_length : float
+        length of streamline (in µm)
+    n_sections : int
+        number of compartments in a streamline
+    atol : float
+        tolerance for floating-point comparisons.
 
-    Returns:
-        np.ndarray: Array of center positions for each section in mm.
+    Returns
+    ------
+    mrg_section_centers : (N) np.ndarray
+        array of center positives for each section (in µm)
     """
-    L = mrg_section_lengths_mm(d)
-    per_rep = L.sum()
+    cumulative_section_lengths = mrg_section_lengths(d)
+    per_rep = cumulative_section_lengths.sum()
     centers = []
     offset = 0.0
     while (len(centers) < n_sections and
-           offset + 0.5*L[0] <= total_len_mm + atol):
+           offset + 0.5*cumulative_section_lengths[0] <= streamline_length
+           + atol):
 
-        starts = offset + np.concatenate(([0.0], np.cumsum(L[:-1])))
-        ends = starts + L
+        starts = (offset
+                  + np.concatenate(([0.0],
+                                    np.cumsum(
+                                        cumulative_section_lengths[:-1]
+                                        ))))
+
+        ends = starts + cumulative_section_lengths
         c = 0.5*(starts + ends)
         for ci in c:
-            if ci <= total_len_mm + atol:
+            if ci <= streamline_length + atol:
                 centers.append(ci)
                 if len(centers) == n_sections:
                     break
         offset += per_rep
-        if offset > total_len_mm + atol:
+        if offset > streamline_length + atol:
             break
-    return np.array(centers[:n_sections], dtype=float)
+    mrg_section_centers = np.array(centers[:n_sections], dtype=float)
+    return mrg_section_centers
 
 
 def interpolate_fiber_variable_centers(coordinates, d, n_sections):
@@ -291,21 +333,25 @@ def interpolate_fiber_variable_centers(coordinates, d, n_sections):
     the MRG section centers based on diameter
     and number of sections.
 
-    Parameters:
-        coordinates (np.ndarray): Original fiber coordinates (Nx3).
-        d (float): Diameter of the neuron.
-        n_sections (int): Number of sections.
+    Parameters
+    ------
+    coordinates : (N, 3) np.ndarray
+        3-D coordiantes representing the streamline
+    d : float
+        diameter of streamline (in µm)
+    n_sections : int
+        number of compartments in streamline
 
-    Returns:
-        tuple: (interp_coords, interp_arc)
-            interp_coords : np.ndarray (n_sections * 3)
-                Interpolated coordinates
-            interp_arc : np.ndarray
-                Cumulative distances for interpolated coordinates.
+    Returns
+    ------
+    interp_coords : (n_sections, 3) np.ndarray
+        interpolated coordinates
+    interp_arc : (n_sections) np.ndarray
+        cumulative distances for interpolated coordinates (in µm)
     """
     arc = compute_cumulative_distances(coordinates)
-    total_len = arc[-1]
-    center_arc = make_mrg_centers(total_len, d, n_sections)
+    streamline_length = arc[-1]
+    center_arc = make_mrg_centers(d, streamline_length, n_sections)
     interp_coords = np.column_stack(
         [np.interp(center_arc, arc, coordinates[:, k]) for k in range(3)]
         )

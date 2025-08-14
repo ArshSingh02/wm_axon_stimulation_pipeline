@@ -1,8 +1,9 @@
 from multiprocessing import Pool
 import argparse
 import os
+import numpy as np
 
-from efield_helper_functions import streamline_extraction, efield_extraction
+from streamline_helper_functions import stimulate_streamline
 
 
 if __name__ == "__main__":
@@ -18,12 +19,24 @@ if __name__ == "__main__":
         help="Patient ID"
     )
     parser.add_argument(
+        "--diameter", required=True, type=float,
+        help="Streamline Diameter"
+    )
+    parser.add_argument(
         "--stim_type", required=True, type=str,
         help="Type of Stimulation"
     )
     parser.add_argument(
         "--stim_location", required=True, type=str,
         help="Stimulation Location"
+    )
+    parser.add_argument(
+        "--pulse_width", required=True, type=float,
+        help="Pulse Width"
+    )
+    parser.add_argument(
+        "--stimamp", required=True, type=float,
+        help="Stimulus Amplitude (in terms of % MSO)"
     )
 
     args = parser.parse_args()
@@ -43,21 +56,38 @@ if __name__ == "__main__":
 
     for fiber_tract in fiber_tracts:
 
-        streamline_extraction(
-            base_path=args.base_path,
-            head_model=args.head_model,
-            fiber_tract=fiber_tract,
-            num_streamlines=num_CPUs
+        results_directory = os.path.join(
+            args.base_path,
+            f"{args.stim_type} Results",
+            args.stim_location,
+            args.head_model,
+            str(args.pulse_width)
         )
 
-        efield_extraction_arguments = [
+        percent_mso_amp = str(int(np.round(args.stimamp * 100)))
+
+        activation_map_directory = os.path.join(
+            args.base_path,
+            (
+                f'{args.stim_type} Results/{args.stim_location}/'
+                f'{args.head_model}/'
+                f'{str(args.pulse_width)}/Activation Mapping/'
+                f'{percent_mso_amp} % MSO'
+            )
+        )
+        os.makedirs(activation_map_directory, exist_ok=True)
+
+        streamline_stimulation_arguments = [
             (
                 args.base_path,
                 args.head_model,
                 fiber_tract,  # Changes after all jobs for one tract finish
                 streamline_number,  # Changes for each job
+                args.diameter,
                 args.stim_type,
-                args.stim_location
+                args.stim_location,
+                args.pulse_width,
+                args.stimamp
             )
             for streamline_number in range(num_CPUs)
         ]
@@ -65,7 +95,8 @@ if __name__ == "__main__":
         # Parallel execution
         try:
             with Pool(num_CPUs) as pool:
-                pool.starmap(efield_extraction, efield_extraction_arguments)
+                pool.starmap(stimulate_streamline,
+                             streamline_stimulation_arguments)
         except Exception as e:
-            print(f"Error extracting {fiber_tract} e-field: {e}", flush=True)
+            print(f"Error stimulating {fiber_tract}: {e}", flush=True)
             exit(1)

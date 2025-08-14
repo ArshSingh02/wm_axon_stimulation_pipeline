@@ -19,13 +19,20 @@ def extract_efield_simnibs(base_path, coordinate_file, stim_type,
 
     Extracting the e-field based on stimulation type.
 
-    Parameters:
-        stim_type (str): Type of stimulation (TMS, MST, ECT).
-        dicf (str): Path to the interpolated coordinate file.
-        stim_location (str): Stimulation location for MST/ECT.
+    Parameters
+    ------
+    base_path : str
+        user's base directory
+    coordinate_file : str
+        path to the coordinate file.
+    stim_type : str
+        type of stimulation
+    stim_location : str
+        stimulation location
 
-    Returns:
-        None
+    Returns
+    ------
+    None
     """
 
     efield_file = coordinate_file.replace('.csv', '_E.csv')
@@ -98,16 +105,16 @@ def calculate_projected_efield(coordinates, efields):
     of the streamline.
 
     Parameters
-    ----------
+    ------
     coordinates : (N,3) array_like
-        Input polyline points in mm.
+        input polyline points (resolution on mm scale)
     efields : (N,3) array_like
-        Electric field vectors at each point.
+        electric field vectors at each point (in V/m)
 
     Returns
-    -------
+    ------
     scalar_proj_efield : (N,1) ndarray
-        Scalar projection of e-field at point N.
+        scalar projection of e-field at point N (in V/m)
     """
     directions = np.diff(coordinates, axis=0)
     directions /= np.linalg.norm(directions, axis=1)[:, None]
@@ -125,21 +132,22 @@ def calculate_quasipotentials(coords, scalar_proj_efield):
     at each point.
 
     Parameters
-    ----------
+    ------
     coords : (N,3) array_like
-        Input polyline points in mm.
+        input polyline points (resolution on mm scale)
     scalar_proj_efield : (N,1) array_like
-        Scalar projection of e-field at each point.
+        scalar projection of e-field at each point (in V/m)
 
     Returns
-    -------
+    ------
     ec : (N,1) ndarray
-        Quasi-potentials at each point along the streamline.
+        quasi-potentials at each point along the streamline (in mV)
     """
     ec = np.zeros(len(scalar_proj_efield))
     for i in range(1, len(scalar_proj_efield)):
-        step_len = np.linalg.norm(coords[i] - coords[i-1]) / 1000.0
+        step_len = np.linalg.norm(coords[i] - coords[i-1])
         ec[i] = ec[i-1] - scalar_proj_efield[i-1] * step_len
+    return ec
 
 
 def interpolate_proj_efield(interp_arc, arc_uniform, scalar_proj_efield):
@@ -150,18 +158,21 @@ def interpolate_proj_efield(interp_arc, arc_uniform, scalar_proj_efield):
     MRG resolution
 
     Parameters
-    ----------
+    ------
     interp_arc : (M,) array_like
-        Arc lengths at which to interpolate the scalar projected e-field.
+        arc lengths at which to interpolate the scalar projected
+        e-field (in µm)
     arc_uniform : (N,) array_like
-        Original arc lengths corresponding to the scalar projected e-field.
+        original arc lengths corresponding to the scalar projected
+        e-field (in µm)
     scalar_proj_efield : (N,) array_like
-        Original scalar projected e-field values.
+        original scalar projected e-field values (in V/m)
 
     Returns
-    -------
+    ------
     scalar_proj_efield_interp : (M,) ndarray
-        Interpolated scalar projected e-field values at interp_arc positions.
+        Interpolated scalar projected e-field values at interp_arc
+        positions (in V/m)
     """
     scalar_proj_efield_interp = np.interp(interp_arc, arc_uniform,
                                           scalar_proj_efield)
@@ -177,18 +188,18 @@ def interpolate_quasipotentials(interp_arc, arc_uniform,
     MRG resolution
 
     Parameters
-    ----------
+    ------
     interp_arc : (M,) array_like
-        Arc lengths at which to interpolate the quasi-potentials.
+        arc lengths at which to interpolate the quasi-potentials (in µm)
     arc_uniform : (N,) array_like
-        Original arc lengths corresponding to the quasi-potentials.
+        original arc lengths corresponding to the quasi-potentials (in µm)
     ec_potentials_uniform : (N,) array_like
-        Original quasi-potential values.
+        original quasi-potential values (in mV)
 
     Returns
-    -------
+    ------
     ec_potentials_interp : (M,) ndarray
-        Interpolated quasi-potential values at interp_arc positions.
+        interpolated quasi-potential values at interp_arc positions (in mV)
     """
     ec_potentials_interp = np.interp(interp_arc, arc_uniform,
                                      ec_potentials_uniform)
@@ -203,14 +214,14 @@ def calculate_activating_function(fiber):
     based on the quasi-potentials at each Node of Ranvier.
 
     Parameters
-    ----------
-    fiber : Fiber object
-        Fiber object containing sections and potentials.
+    ------
+    fiber : PyFibers Fiber object
+        fiber object containing sections and potentials
 
     Returns
     -------
     activating_function : (N,) ndarray
-        Activating function values at each section.
+        activating function values at each section (figuring out units)
     """
     activating_function = np.zeros(len(fiber.sections), dtype=float)
 
@@ -255,6 +266,8 @@ def calculate_activating_function(fiber):
 
         activating_function[n] = I_m
 
+    return activating_function
+
 
 def streamline_extraction(base_path, head_model, fiber_tract, num_streamlines):
     """
@@ -267,9 +280,9 @@ def streamline_extraction(base_path, head_model, fiber_tract, num_streamlines):
     base_path : str
         user's base directory
     head_model : str
-        patient id
+        patient ID
     fiber_tract : str
-        name of fiber tract
+        white matter fiber tract
     num_streamlines : str
         total number of streamlines to extract
 
@@ -334,11 +347,11 @@ def efield_extraction(base_path, head_model, fiber_tract, streamline_number,
     base_path : str
         user's base directory
     head_model : str
-        patient id
+        patient ID
     fiber_tract : str
-        name of fiber tract
+        white matter fiber tract
     streamline_number : str
-        number of streamline
+        streamline ID in fiber tract
     stim_type : str
         type of stimulation
     stim_location : str
