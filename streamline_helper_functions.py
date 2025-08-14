@@ -32,6 +32,40 @@ from waveforms import select_waveform
 def calculate_fiber_parameters(base_path, head_model, fiber_tract,
                                streamline_number, diameter,
                                stim_type, stim_location):
+    """
+    Calculate fiber parameters
+
+    Calculates n_sections, quasipotentials, scalar projected efields,
+    and coordinates on the MRG resolution for fiber creation
+
+    Parameters
+    ----------
+    base_path : str
+        user's base directory
+    head_model : str
+        patient ID
+    fiber_tract : str
+        white matter fiber tract
+    streamline_number : str
+        streamline ID in fiber tract
+    diameter : int
+        diameter of streamline
+    stim_type : str
+        Type of stimulation
+    stim_location : str
+        Stimulation location
+
+    Returns
+    -------
+    n_sections : int
+        number of compartments in a streamline
+    quasipotentials_interp : (N, 1)
+        ec potentials interpolated to MRG resolution
+    scalar_proj_efield_interp : (N, 1)
+        scalar projected e-field interpolated to MRG resolution
+    coords_mrg_resolution : (N, 3)
+        streamline coordinate points interpoolated to MRG resolution
+    """
 
     file_directory = (
         base_path + f'/WM Fiber Tracts/{head_model}/{fiber_tract}/Coordinates/'
@@ -92,10 +126,47 @@ def calculate_fiber_parameters(base_path, head_model, fiber_tract,
     )
 
 
-def create_fiber(diameter, n_sections, quasipotentials_interp,
-                 scalar_proj_efield_interp, coords_mrg_resolution,
-                 base_path, streamline_number,
-                 stim_type, stim_location, head_model, fiber_tract):
+def create_streamline(base_path, head_model, fiber_tract,
+                      streamline_number, diameter, stim_type, stim_location,
+                      n_sections, quasipotentials_interp,
+                      scalar_proj_efield_interp, coords_mrg_resolution):
+    """
+    Create Fiber Object
+
+    Reconstruct white matter streamline in NEURON using
+    PyFibers Fiber Object. Add EC potentials and create
+    e-field visualization in form of .vtk file.
+
+    Parameters
+    ----------
+    base_path : str
+        user's base directory
+    head_model : str
+        patient ID
+    fiber_tract : str
+        white matter fiber tract
+    streamline_number : str
+        streamline ID in fiber tract
+    diameter : int
+        diameter of streamline
+    stim_type : str
+        Type of stimulation
+    stim_location : str
+        Stimulation location
+    n_sections : int
+        number of compartments in a streamline
+    quasipotentials_interp : (N, 1)
+        ec potentials interpolated to MRG resolution
+    scalar_proj_efield_interp : (N, 1)
+        scalar projected e-field interpolated to MRG resolution
+    coords_mrg_resolution : (N, 3)
+        streamline coordinate points interpoolated to MRG resolution
+
+    Returns
+    -------
+    fiber : PyFibers Fiber Object
+        streamline reconstructed in NEURON using PyFibers
+    """
 
     fiber = build_fiber(FiberModel.MRG_INTERPOLATION,
                         diameter=diameter, n_sections=n_sections)
@@ -149,36 +220,90 @@ def create_fiber(diameter, n_sections, quasipotentials_interp,
 
 
 def find_streamline_threshold(
-            fiber, diameter, base_path, streamline_number, pulse_width,
-            stim_type, stim_location, head_model, fiber_tract,
-            stimamp_bottom, stimamp_top,
-            coords_mrg_resolution):
+            base_path, head_model, fiber_tract,
+            streamline_number, diameter, stim_type, stim_location,
+            n_sections, quasipotentials_interp,
+            scalar_proj_efield_interp, coords_mrg_resolution,
+            pulse_width, stimamp_bottom, stimamp_top):
+    """
+    Find streamline threshold
 
+    Find stimulus threshold for action potential
+    initiation in white matter streamline
+
+    Parameters
+    ----------
+    base_path : str
+        user's base directory
+    head_model : str
+        patient ID
+    fiber_tract : str
+        white matter fiber tract
+    streamline_number : str
+        streamline ID in fiber tract
+    diameter : int
+        diameter of streamline
+    stim_type : str
+        Type of stimulation
+    stim_location : str
+        Stimulation location
+    n_sections : int
+        number of compartments in a streamline
+    quasipotentials_interp : (N, 1)
+        ec potentials interpolated to MRG resolution
+    scalar_proj_efield_interp : (N, 1)
+        scalar projected e-field interpolated to MRG resolution
+    coords_mrg_resolution : (N, 3)
+        streamline coordinate points interpoolated to MRG resolution
+    pulse_width : float
+        width of pulse for stimulus waveform
+    stimamp_bottom : float
+        lower bound of threshold search
+    stimamp_top : float
+        upper bound of threshold search
+
+    Returns
+    -------
+    None
+    """
+    # Stimulation Threshold Directory
     results_directory = os.path.join(
         base_path,
         f'{stim_type} Results/{stim_location}/{head_model}/{str(pulse_width)}'
     )
 
+    # Stimulation Thresholds File for a Fiber Tract/Pulse Width/Diameter Combo
     thresholds_file = os.path.join(
         results_directory,
         f"{fiber_tract}_{diameter}microns_"
         f"{stim_type}_{stim_location}_{str(pulse_width)}ms.csv"
     )
 
+    parameters = calculate_fiber_parameters(base_path, head_model, fiber_tract,
+                                            streamline_number, diameter,
+                                            stim_type, stim_location)
+
+    n_sections = parameters[0]
+    quasipotentials_interp = parameters[1]
+    scalar_proj_efield_interp = parameters[2]
+    coords_mrg_resolution = parameters[3]
+
+    fiber = create_streamline(base_path, head_model, fiber_tract,
+                              streamline_number, diameter, stim_type,
+                              stim_location, n_sections,
+                              quasipotentials_interp,
+                              scalar_proj_efield_interp, coords_mrg_resolution)
+
     waveform_func, simulation_time_step, simulation_duration = select_waveform(
         base_path, stim_type, pulse_width
     )
-    stimulation = ScaledStim(
-        waveform=waveform_func,
-        dt=simulation_time_step,
-        tstop=simulation_duration
-    )
-    stimamp, _ = stimulation.find_threshold(
-        fiber,
-        stimamp_bottom=stimamp_bottom,
-        stimamp_top=stimamp_top,
-        condition="activation"
-    )
+    stimulation = ScaledStim(waveform=waveform_func, dt=simulation_time_step,
+                             tstop=simulation_duration)
+
+    stimamp, _ = stimulation.find_threshold(fiber,
+                                            stimamp_bottom=stimamp_bottom,
+                                            stimamp_top=stimamp_top,
+                                            condition="activation")
 
     with open(thresholds_file, mode='a', newline='') as file:
         writer = csv.writer(file)
@@ -186,6 +311,7 @@ def find_streamline_threshold(
 
     amp, _ = stimulation.run_sim(stimamp, fiber)
 
+    # Activation Map Directory
     activation_map_directory = os.path.join(
         base_path,
         (
@@ -195,6 +321,7 @@ def find_streamline_threshold(
     )
     os.makedirs(activation_map_directory, exist_ok=True)
 
+    # Activation Map .vtk File
     streamline_activation_file = os.path.join(
         activation_map_directory,
         f"{fiber_tract}_{diameter}microns_{streamline_number}_"
@@ -206,9 +333,50 @@ def find_streamline_threshold(
 
 
 def stimulate_streamline(
-            fiber, diameter, base_path, streamline_number, pulse_width,
-            stim_type, stim_location, head_model, fiber_tract,
-            stimamp, coords_mrg_resolution):
+            base_path, head_model, fiber_tract,
+            streamline_number, diameter, stim_type, stim_location,
+            n_sections, quasipotentials_interp,
+            scalar_proj_efield_interp, coords_mrg_resolution,
+            pulse_width, stimamp):
+    """
+    Find streamline threshold
+
+    Find stimulus threshold for action potential
+    initiation in white matter streamline
+
+    Parameters
+    ----------
+    base_path : str
+        user's base directory
+    head_model : str
+        patient ID
+    fiber_tract : str
+        white matter fiber tract
+    streamline_number : str
+        streamline ID in fiber tract
+    diameter : int
+        diameter of streamline
+    stim_type : str
+        Type of stimulation
+    stim_location : str
+        Stimulation location
+    n_sections : int
+        number of compartments in a streamline
+    quasipotentials_interp : (N, 1)
+        ec potentials interpolated to MRG resolution
+    scalar_proj_efield_interp : (N, 1)
+        scalar projected e-field interpolated to MRG resolution
+    coords_mrg_resolution : (N, 3)
+        streamline coordinate points interpoolated to MRG resolution
+    pulse_width : float
+        width of pulse for stimulus waveform
+    stimamp : float
+        stimulus amplitude in terms of % MSO
+
+    Returns
+    -------
+    None
+    """
 
     percent_mso_amp = str(int(np.round(stimamp * 100)))
 
@@ -221,6 +389,21 @@ def stimulate_streamline(
         )
     )
     os.makedirs(activation_map_directory, exist_ok=True)
+
+    parameters = calculate_fiber_parameters(base_path, head_model, fiber_tract,
+                                            streamline_number, diameter,
+                                            stim_type, stim_location)
+
+    n_sections = parameters[0]
+    quasipotentials_interp = parameters[1]
+    scalar_proj_efield_interp = parameters[2]
+    coords_mrg_resolution = parameters[3]
+
+    fiber = create_streamline(base_path, head_model, fiber_tract,
+                              streamline_number, diameter, stim_type,
+                              stim_location, n_sections,
+                              quasipotentials_interp,
+                              scalar_proj_efield_interp, coords_mrg_resolution)
 
     waveform_func, simulation_time_step, simulation_duration = select_waveform(
         base_path, stim_type, pulse_width
