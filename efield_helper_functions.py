@@ -158,18 +158,21 @@ def interpolate_proj_efield(interp_arc, arc_uniform, scalar_proj_efield):
     MRG resolution
 
     Parameters
-    ----------
+    ------
     interp_arc : (M,) array_like
-        arc lengths at which to interpolate the scalar projected e-field (in µm)
+        arc lengths at which to interpolate the scalar projected
+        e-field (in µm)
     arc_uniform : (N,) array_like
-        original arc lengths corresponding to the scalar projected e-field (in µm)
+        original arc lengths corresponding to the scalar projected
+        e-field (in µm)
     scalar_proj_efield : (N,) array_like
         original scalar projected e-field values (in V/m)
 
     Returns
-    -------
+    ------
     scalar_proj_efield_interp : (M,) ndarray
-        Interpolated scalar projected e-field values at interp_arc positions (in V/m)
+        Interpolated scalar projected e-field values at interp_arc
+        positions (in V/m)
     """
     scalar_proj_efield_interp = np.interp(interp_arc, arc_uniform,
                                           scalar_proj_efield)
@@ -185,7 +188,7 @@ def interpolate_quasipotentials(interp_arc, arc_uniform,
     MRG resolution
 
     Parameters
-    ----------
+    ------
     interp_arc : (M,) array_like
         arc lengths at which to interpolate the quasi-potentials (in µm)
     arc_uniform : (N,) array_like
@@ -194,7 +197,7 @@ def interpolate_quasipotentials(interp_arc, arc_uniform,
         original quasi-potential values (in mV)
 
     Returns
-    -------
+    ------
     ec_potentials_interp : (M,) ndarray
         interpolated quasi-potential values at interp_arc positions (in mV)
     """
@@ -211,14 +214,14 @@ def calculate_activating_function(fiber):
     based on the quasi-potentials at each Node of Ranvier.
 
     Parameters
-    ----------
+    ------
     fiber : PyFibers Fiber object
-        fiber object containing sections and potentials.
+        fiber object containing sections and potentials
 
     Returns
     -------
     activating_function : (N,) ndarray
-        activating function values at each section.
+        activating function values at each section (figuring out units)
     """
     activating_function = np.zeros(len(fiber.sections), dtype=float)
 
