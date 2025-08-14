@@ -20,9 +20,14 @@ def extract_efield_simnibs(base_path, coordinate_file, stim_type,
     Extracting the e-field based on stimulation type.
 
     Parameters:
-        stim_type (str): Type of stimulation (TMS, MST, ECT).
-        dicf (str): Path to the interpolated coordinate file.
-        stim_location (str): Stimulation location for MST/ECT.
+    base_path : str
+        user's base directory
+    coordinate_file : str
+        Path to the coordinate file.
+    stim_type : str
+        Type of stimulation (TMS, MST, ECT).
+    stim_location : str
+        Stimulation location for MST/ECT.
 
     Returns:
         None
