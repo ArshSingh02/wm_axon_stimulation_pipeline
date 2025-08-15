@@ -50,12 +50,17 @@ def create_vtk_scalars(scalars, name):
     """
     Create a VTK DoubleArray object for scalar data.
 
-    Parameters:
-        scalars (list of float): List of scalar values.
-        name (str): Name for the scalar data array.
+    Parameters
+    ------
+    scalars : (N) list of floats
+        list of scalar values
+    name : str
+        name for the scalar data array
 
-    Returns:
-        vtk.vtkDoubleArray: VTK DoubleArray object containing the scalar data.
+    Returns
+    ------
+    vtk_scalars : vtk.vtkDoubleArray
+        VTK DoubleArray object containing the scalar data.
     """
     vtk_scalars = vtk.vtkDoubleArray()
     vtk_scalars.SetName(name)
@@ -69,10 +74,18 @@ def save_vtk_file(output_path, vtk_coords, vtk_proj_efield,
     """
     Save VTK data (points and vectors) to a VTK file.
 
-    Parameters:
-        output_path (str): Path to the output VTK file.
-        vtk_points (vtk.vtkPoints): VTK Points object.
-        vtk_vectors (vtk.vtkDoubleArray): VTK DoubleArray object for vectors.
+    Parameters
+    ------
+    output_path : str
+        path to the output VTK file.
+    vtk_points : vtk.vtkPoints
+        VTK Points object.
+    vtk_vectors : vtk.vtkDoubleArray
+        VTK DoubleArray object for vectors.
+
+    Returns
+    ------
+    None
     """
     # Create a VTK PolyData object
     polydata = vtk.vtkPolyData()
@@ -98,9 +111,21 @@ def detect_ap_nodes(vm_list, threshold=-30.0):
     """
     Detects APs based on spatial peak detection at each timepoint:
     A node is marked as having an AP at time i if:
-        - Its voltage >= threshold
-        - Its neighboring nodes (j-1 and j+1) are below threshold
-    Returns a set of node indices with detected APs across all timepoints.
+        1. Its voltage >= threshold
+        2. Its neighboring nodes (j-1 and j+1) are below threshold
+
+    Parameters
+    ------
+    vm_list : (N, M) np.ndarray
+        list of membrane potentials from each node of ranvier
+        across stimulation time
+    threshold : float
+        membrane voltage required to illicit an action potential
+
+    Returns
+    ------
+    ap_node_set : set
+        set of node indices with detected APs across all timepoints.
     """
 
     timeIdxs = []
@@ -161,7 +186,20 @@ def create_voltage_labeled_vtk(vtk_coords, ap_nodes,
 def process_fiber_ap(fiber, coords_mrg_resolution,
                      streamline_activation_file):
     """
-    Detect APs from fiber.vm and generate VTK with voltage labeling.
+    Detect APs from fiber.vm and generate VTK with voltage labeling
+
+    Parameters
+    ------
+    fiber : PyFibers Fiber object
+        PyFibers Fiber object representing the streamline
+    coords_mrg_resolution : (N, 3) np.ndarray
+        3-D coordinates representing the streamline
+    streamline_activation_file : str
+        file name for .vtk file representing activation
+
+    Results
+    ------
+    None
     """
 
     num_points = len(fiber.sections)
